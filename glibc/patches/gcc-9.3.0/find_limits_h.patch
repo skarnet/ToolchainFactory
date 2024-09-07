@@ -1,0 +1,12 @@
+diff -rNU3 gcc-9.3.0.old/gcc/Makefile.in gcc-9.3.0/gcc/Makefile.in
+--- gcc-9.3.0.old/gcc/Makefile.in	2019-04-25 16:32:16.000000000 +0200
++++ gcc-9.3.0/gcc/Makefile.in	2019-11-06 11:27:47.090878255 +0100
+@@ -532,7 +532,7 @@
+ STMP_FIXINC = @STMP_FIXINC@
+ 
+ # Test to see whether <limits.h> exists in the system header files.
+-LIMITS_H_TEST = [ -f $(BUILD_SYSTEM_HEADER_DIR)/limits.h ]
++LIMITS_H_TEST = [ -f $(BUILD_SYSTEM_HEADER_DIR)/limits.h -o -f $(BUILD_SYSTEM_HEADER_DIR)/$(MULTIARCH_DIRNAME)/limits.h ]
+ 
+ # Directory for prefix to system directories, for
+ # each of $(system_prefix)/usr/include, $(system_prefix)/usr/lib, etc.

@@ -1,0 +1,1 @@
+--with-cpu=cortex-a53 --with-float-abi=hard

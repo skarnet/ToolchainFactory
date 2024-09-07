@@ -1,0 +1,12 @@
+--- gdb-8.1/gdb/nat/linux-osdata.c.old	2018-01-04 22:07:23.000000000 -0600
++++ gdb-8.1/gdb/nat/linux-osdata.c	2018-06-22 04:31:42.655497623 -0500
+@@ -23,7 +23,8 @@
+ #include <sys/types.h>
+ #include <sys/sysinfo.h>
+ #include <ctype.h>
+-#include <utmp.h>
++#include <limits.h>
++#define UT_NAMESIZE LOGIN_NAME_MAX
+ #include <time.h>
+ #include <unistd.h>
+ #include <pwd.h>

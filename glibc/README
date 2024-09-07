@@ -1,0 +1,13 @@
+This set of tools builds gcc+glibc cross-toolchains.
+It worked in 2020, but hasn't been maintained since.
+You may be able to make it work with some tweaks.
+
+Build machine requirements:
+
+- GNU make 4.0+
+- gcc 6.2+
+- binutils 2.25+
+- gawk 3.1.2+
+- bison 2.7+
+- sed 3.02+
+- python 3.4+

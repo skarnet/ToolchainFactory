@@ -1,0 +1,19 @@
+Package: @@package@@
+Version: @@version@@
+Maintainer: @@maintainer@@
+Changed-By: @@maintainer@@
+Description: FCE C/C++ toolchain targetting @@triplet@@ (@@name@@)
+ C/C++ toolchain for Linux, made by Faurecia Clarion with the following properties:
+  Build system: @@pc@@ (@@pc_libc_required@@)
+  Target system: @@triplet@@, suitable for a product of type @@name@@
+  Target libc: @@libc_name@@
+  Software versions: gcc-@@gcc_ver@@, gmp-@@gmp_ver@@, mpfr-@@mpfr_ver@@, mpc-@@mpc_ver@@, isl-@@isl_ver@@, @@libc_name@@-@@libc_ver@@, binutils-@@binutils_ver@@
+ Includes a debugger, gdb-@@gdb_ver@@, and a native gdbserver binary for @@triplet@@.
+Section: devel
+Priority: optional
+Installed-Size: @@size@@
+Architecture: @@debpc@@
+Origin: FCE
+Bugs: jira://jira.sinc.faurecia.com/
+Depends: @@pc_libc@@
+

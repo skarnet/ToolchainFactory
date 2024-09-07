@@ -1,0 +1,11 @@
+diff -rNU3 gcc-9.3.0.old/Makefile.in gcc-9.3.0/Makefile.in
+--- gcc-9.3.0.old/Makefile.in	2019-04-09 10:49:14.000000000 +0200
++++ gcc-9.3.0/Makefile.in	2019-11-04 11:45:20.003304394 +0100
+@@ -198,6 +198,7 @@
+ 	AR="$(AR)"; export AR; \
+ 	AS="$(AS)"; export AS; \
+ 	CC_FOR_BUILD="$(CC_FOR_BUILD)"; export CC_FOR_BUILD; \
++	CXX_FOR_BUILD="$(CXX_FOR_BUILD)"; export CXX_FOR_BUILD; \
+ 	DLLTOOL="$(DLLTOOL)"; export DLLTOOL; \
+ 	LD="$(LD)"; export LD; \
+ 	LDFLAGS="$(STAGE1_LDFLAGS) $(LDFLAGS)"; export LDFLAGS; \

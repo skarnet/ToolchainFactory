@@ -1,0 +1,1 @@
+--with-arch=armv7-a --with-tune=cortex-a9 --with-float=softfp --with-float-abi=softfp --with-fpu=neon

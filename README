@@ -1,0 +1,8 @@
+ToolchainFactory
+----------------
+
+- edit the "config" file (cp config.dist config if you don't have one yet)
+- go to the musl/ or glibc/ subdirectory
+- read the README there
+- choose your targets
+- run "make" with your targets

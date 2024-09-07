@@ -1,0 +1,1 @@
+--with-arch=armv8-a --with-cpu=cortex-a72 --with-float-abi=hard

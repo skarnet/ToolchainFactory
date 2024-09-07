@@ -1,0 +1,31 @@
+diff -rNU3 musl-cross-make.old/Makefile musl-cross-make/Makefile
+--- musl-cross-make.old/Makefile	2023-01-19 15:34:51.459465734 +0000
++++ musl-cross-make/Makefile	2023-01-19 15:38:18.809465486 +0000
+@@ -65,6 +65,7 @@
+ $(patsubst hashes/%.sha1,$(SOURCES)/%,$(wildcard hashes/binutils*)): SITE = $(BINUTILS_SITE)
+ $(patsubst hashes/%.sha1,$(SOURCES)/%,$(wildcard hashes/gcc*)): SITE = $(GCC_SITE)/$(basename $(basename $(notdir $@)))
+ $(patsubst hashes/%.sha1,$(SOURCES)/%,$(wildcard hashes/musl*)): SITE = $(MUSL_SITE)
++$(patsubst hashes/%.sha1,$(SOURCES)/%,$(wildcard hashes/linux-6*)): SITE = $(LINUX_SITE)/v6.x
+ $(patsubst hashes/%.sha1,$(SOURCES)/%,$(wildcard hashes/linux-5*)): SITE = $(LINUX_SITE)/v5.x
+ $(patsubst hashes/%.sha1,$(SOURCES)/%,$(wildcard hashes/linux-4*)): SITE = $(LINUX_SITE)/v4.x
+ $(patsubst hashes/%.sha1,$(SOURCES)/%,$(wildcard hashes/linux-3*)): SITE = $(LINUX_SITE)/v3.x
+@@ -137,6 +138,7 @@
+ 	mkdir $@.tmp
+ 	( cd $@.tmp && $(COWPATCH) -I ../$< )
+ 	test ! -d patches/$@ || cat patches/$@/* | ( cd $@.tmp && $(COWPATCH) -p1 )
++	test ! -d ../../patches-in-mcm/$@ || cat ../../patches-in-mcm/$@/* | ( cd $@.tmp && $(COWPATCH) -p1 )
+ 	if test -f $</configfsf.sub ; then cs=configfsf.sub ; elif test -f $</config.sub ; then cs=config.sub ; else exit 0 ; fi ; rm -f $@.tmp/$$cs && cp -f $(SOURCES)/config.sub $@.tmp/$$cs && chmod +x $@.tmp/$$cs
+ 	rm -rf $@
+ 	mv $@.tmp $@
+diff -rNU3 musl-cross-make.old/litecross/Makefile musl-cross-make/litecross/Makefile
+--- musl-cross-make.old/litecross/Makefile	2023-01-19 15:34:51.459465734 +0000
++++ musl-cross-make/litecross/Makefile	2023-01-19 15:36:40.009465605 +0000
+@@ -269,7 +269,7 @@
+ 	ln -sf "$(LINUX_SRCDIR)" $@
+ obj_kernel_headers/.lc_built: | src_kernel_headers
+ 	mkdir -p $(CURDIR)/obj_kernel_headers/staged
+-	cd src_kernel_headers && $(MAKE) ARCH=$(LINUX_ARCH) O=$(CURDIR)/obj_kernel_headers INSTALL_HDR_PATH=$(CURDIR)/obj_kernel_headers/staged headers_install
++	cd src_kernel_headers && env HOST_EXTRACFLAGS='-static' $(MAKE) ARCH=$(LINUX_ARCH) O=$(CURDIR)/obj_kernel_headers INSTALL_HDR_PATH=$(CURDIR)/obj_kernel_headers/staged headers_install
+ 	find obj_kernel_headers/staged/include '(' -name .install -o -name ..install.cmd ')' -exec rm {} +
+ 	touch $@
+ install-kernel-headers: | obj_kernel_headers/.lc_built

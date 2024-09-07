@@ -1,0 +1,63 @@
+
+This small build system uses the musl-cross-make project (mcm)
+(which is maintained by the author of musl) to build small,
+statically-linked, self-contained gcc+musl toolchains.
+
+ Software versions are defined in the 'config' file - but if you
+use a version that's not supported ootb by mcm, you'll have to
+add the corresponding hash in the 'hashes' directory with sha1sum.
+There are already examples there.
+
+ Architectures are defined in the 'targets' subdirectory. Every arch
+is defined by a directory, containing:
+ - triplet: the gcc triplet corresponding to that arch
+ - (optionally) options: a list of options to add to the configure
+line when building gcc. This file is typically useful when building
+for an arch that has multiple incarnations and variants - such as
+arm or aarch64 - or simply when you want to specialize a toolchain,
+e.g. to make a compiler targetting i486 or i686.
+ If you aim for a new target 'foo', just make a targets/foo directory
+with the correct 'triplet' and 'options' files for the architecture
+you want. You'll then be able to "make foo".
+
+ The pc target (shortcut for the build machine's architecture, which is
+x86_64-linux-musl by default, but it can be changed if you're building
+on another arch) is mandatory: it's used to bootstrap mcm-framework.
+IOW: the native x86_64-linux-musl toolchain that is built first will
+be used to build the other toolchains. This ensures that the toolchains
+are built with a fixed version of gcc (not with the gcc of the build
+machine), and linked against musl, which allows for smaller, functional
+static executables - whereas glibc barely supports static binaries.
+
+ Note that the first toolchain that will be built, called pc_bootstrap,
+still has to be built with the build machine's toolchain, and that won't
+work if the versions are too distant. You won't be able to build
+gcc 14.2.0 with gcc 8.3.0.
+
+ Once you're satisfied with the versions and the architectures, just
+type "make". You can specify the name of an architecture defined in
+'targets': "make h3".
+ Make command-line options are supported. The toolchains will be built
+one by one, but -j options can be given and will be passed to mcm so
+the process of building a toolchain is made more parallel.
+
+ Even with -j8, you can go grab a coffee, or four. Or come back in
+the morning if you're building "all native" as I do for the full set.
+"all" means all cross toolchains; "native" means all native toolchains
+(a native toolchain for $target still requires a pc->$target cross
+toolchain to be built first).
+ The build takes some time, especially if the pc toolchains haven't been
+built yet.
+
+ The resulting toolchains appear in the 'out' subdirectory.
+Cross-toolchains for the given archs are in 'out/cross', and native
+toolchains for the given archs are in 'out/native'.
+
+ Make sure you don't mix cross and native! A cross toochain for h3
+has binaries that only work on pc. A native toolchain for h3 has
+binaries that only work on h3.
+
+ The *cross* toolchain for an architecture will contain a $triplet-gdb
+binary - meant to run on pc but analyze binaries for the target. The
+$triplet/bin subdirectory, meant for the target, will contain a gdbserver
+binary that can run on the target to help the pc gdb.
