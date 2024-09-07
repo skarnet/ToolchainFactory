@@ -2,8 +2,8 @@ Package: @@package@@
 Version: @@version@@
 Maintainer: @@maintainer@@
 Changed-By: @@maintainer@@
-Description: FCE C/C++ toolchain targetting @@triplet@@ (@@name@@)
- C/C++ toolchain for Linux, made by Faurecia Clarion with the following properties:
+Description: C/C++ toolchain targetting @@triplet@@ (@@name@@)
+ C/C++ toolchain for Linux, made with the following properties:
   Build system: @@pc@@ (@@pc_libc_required@@)
   Target system: @@triplet@@, suitable for a product of type @@name@@
   Target libc: @@libc_name@@
@@ -14,6 +14,5 @@ Priority: optional
 Installed-Size: @@size@@
 Architecture: @@debpc@@
 Origin: FCE
-Bugs: jira://jira.sinc.faurecia.com/
 Depends: @@pc_libc@@
 
