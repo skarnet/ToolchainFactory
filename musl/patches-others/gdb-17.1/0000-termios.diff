@@ -1,0 +1,18 @@
+diff -rU3 gdb-17.1.old/gdb/ser-unix.c gdb-17.1/gdb/ser-unix.c
+--- gdb-17.1.old/gdb/ser-unix.c	2025-12-20 02:53:21.000000000 +0000
++++ gdb-17.1/gdb/ser-unix.c	2026-03-03 08:17:32.599938159 +0000
+@@ -529,12 +529,12 @@
+   /* Clear the current output baud rate and fill a new value.  */
+   tio.c_cflag &= ~CBAUD;
+   tio.c_cflag |= BOTHER;
+-  tio.c_ospeed = rate;
++  tio.__c_ospeed = rate;
+ 
+   /* Clear the current input baud rate and fill a new value.  */
+   tio.c_cflag &= ~(CBAUD << IBSHIFT);
+   tio.c_cflag |= BOTHER << IBSHIFT;
+-  tio.c_ispeed = rate;
++  tio.__c_ispeed = rate;
+ 
+   if (ioctl (fd, req_set, &tio) < 0)
+     perror_with_name (_("Can not set custom baud rate"));

@@ -1,0 +1,215 @@
+diff --git a/gdb/Makefile.in b/gdb/Makefile.in
+index 3d9bc86a97fd..4a68189b4340 100644
+--- a/gdb/Makefile.in
++++ b/gdb/Makefile.in
+@@ -1548,6 +1548,7 @@ HFILES_NO_SRCDIR = \
+ 	moxie-tdep.h \
+ 	namespace.h \
+ 	nat/aarch64-fpmr-linux.h \
++	nat/aarch64-gcs-linux.h \
+ 	nat/aarch64-hw-point.h \
+ 	nat/aarch64-linux.h \
+ 	nat/aarch64-linux-hw-point.h \
+diff --git a/gdb/aarch64-linux-nat.c b/gdb/aarch64-linux-nat.c
+index 4b86ae9ebe16..52ace4aab411 100644
+--- a/gdb/aarch64-linux-nat.c
++++ b/gdb/aarch64-linux-nat.c
+@@ -33,6 +33,7 @@
+ #include "aarch32-tdep.h"
+ #include "arch/arm.h"
+ #include "nat/aarch64-fpmr-linux.h"
++#include "nat/aarch64-gcs-linux.h"
+ #include "nat/aarch64-linux.h"
+ #include "nat/aarch64-linux-hw-point.h"
+ #include "nat/aarch64-mte-linux-ptrace.h"
+@@ -54,8 +55,6 @@
+ #include "gdb_proc_service.h"
+ #include "arch-utils.h"
+ 
+-#include "arch/aarch64-gcs-linux.h"
+-
+ #include <string.h>
+ 
+ #ifndef TRAP_HWBKPT
+diff --git a/gdb/aarch64-linux-tdep.c b/gdb/aarch64-linux-tdep.c
+index 4ca05fba771d..d136b0f2145e 100644
+--- a/gdb/aarch64-linux-tdep.c
++++ b/gdb/aarch64-linux-tdep.c
+@@ -1736,8 +1736,9 @@ aarch64_linux_iterate_over_regset_sections (struct gdbarch *gdbarch,
+ 	  gcs_regmap, regcache_supply_regset, regcache_collect_regset
+ 	};
+ 
+-      cb (".reg-aarch-gcs", sizeof (user_gcs), sizeof (user_gcs),
+-	  &aarch64_linux_gcs_regset, "GCS registers", cb_data);
++      cb (".reg-aarch-gcs", AARCH64_LINUX_SIZEOF_GCS_REGSET,
++	  AARCH64_LINUX_SIZEOF_GCS_REGSET, &aarch64_linux_gcs_regset,
++	  "GCS registers", cb_data);
+     }
+ }
+ 
+@@ -1763,7 +1764,7 @@ aarch64_linux_core_read_description (struct gdbarch *gdbarch,
+      length.  */
+   features.vq = aarch64_linux_core_read_vq_from_sections (gdbarch, abfd);
+   features.pauth = hwcap & AARCH64_HWCAP_PACA;
+-  features.gcs = features.gcs_linux = hwcap & HWCAP_GCS;
++  features.gcs = features.gcs_linux = hwcap & AARCH64_HWCAP_GCS;
+   features.mte = hwcap2 & AARCH64_HWCAP2_MTE;
+   features.fpmr = hwcap2 & AARCH64_HWCAP2_FPMR;
+ 
+@@ -2612,7 +2613,7 @@ aarch64_linux_get_shadow_stack_pointer (gdbarch *gdbarch, regcache *regcache,
+   if (status != REG_VALID)
+     error (_("Can't read $gcspr."));
+ 
+-  shadow_stack_enabled = features_enabled & PR_SHADOW_STACK_ENABLE;
++  shadow_stack_enabled = features_enabled & AARCH64_PR_SHADOW_STACK_ENABLE;
+   return gcspr;
+ }
+ 
+@@ -2700,7 +2701,7 @@ aarch64_linux_report_signal_info (struct gdbarch *gdbarch,
+ 
+   if (si_code == AARCH64_SEGV_MTEAERR || si_code == AARCH64_SEGV_MTESERR)
+     meaning = _("Memory tag violation");
+-  else if (si_code == SEGV_CPERR && si_errno == 0)
++  else if (si_code == AARCH64_SEGV_CPERR && si_errno == 0)
+     meaning = _("Guarded Control Stack error");
+   else
+     return;
+@@ -2733,7 +2734,7 @@ aarch64_linux_report_signal_info (struct gdbarch *gdbarch,
+ 	  uiout->field_string ("logical-tag", hex_string (ltag));
+ 	}
+     }
+-  else if (si_code != SEGV_CPERR)
++  else if (si_code != AARCH64_SEGV_CPERR)
+     {
+       uiout->text ("\n");
+       uiout->text (_("Fault address unavailable"));
+diff --git a/gdb/arch/aarch64-gcs-linux.h b/gdb/arch/aarch64-gcs-linux.h
+index b31fc32daa03..4aa0cbd4def8 100644
+--- a/gdb/arch/aarch64-gcs-linux.h
++++ b/gdb/arch/aarch64-gcs-linux.h
+@@ -20,25 +20,17 @@
+ #ifndef GDB_ARCH_AARCH64_GCS_LINUX_H
+ #define GDB_ARCH_AARCH64_GCS_LINUX_H
+ 
+-#include <stdint.h>
+-
+ /* Feature check for Guarded Control Stack.  */
+-#ifndef HWCAP_GCS
+-#define HWCAP_GCS (1ULL << 32)
+-#endif
+-
+-/* Make sure we only define these if the kernel header doesn't.  */
+-#ifndef GCS_MAGIC
++#define AARCH64_HWCAP_GCS (1ULL << 32)
+ 
+-/* GCS state (NT_ARM_GCS).  */
++#define AARCH64_SEGV_CPERR 10 /* Control protection error.  */
+ 
+-struct user_gcs
+-{
+-  uint64_t features_enabled;
+-  uint64_t features_locked;
+-  uint64_t gcspr_el0;
+-};
++/* Flag which enables shadow stack in PR_SET_SHADOW_STACK_STATUS prctl.  */
++#define AARCH64_PR_SHADOW_STACK_ENABLE (1UL << 0)
++#define AARCH64_PR_SHADOW_STACK_WRITE (1UL << 1)
++#define AARCH64_PR_SHADOW_STACK_PUSH (1UL << 2)
+ 
+-#endif /* GCS_MAGIC */
++/* The GCS regset consists of 3 64-bit registers.  */
++#define AARCH64_LINUX_SIZEOF_GCS_REGSET (3 * 8)
+ 
+ #endif /* GDB_ARCH_AARCH64_GCS_LINUX_H */
+diff --git a/gdb/linux-tdep.h b/gdb/linux-tdep.h
+index 73d4832069f4..aee52eae0f4a 100644
+--- a/gdb/linux-tdep.h
++++ b/gdb/linux-tdep.h
+@@ -27,17 +27,6 @@
+ struct inferior;
+ struct regcache;
+ 
+-#ifndef SEGV_CPERR
+-#define SEGV_CPERR 10 /* Control protection error.  */
+-#endif
+-
+-/* Flag which enables shadow stack in PR_SET_SHADOW_STACK_STATUS prctl.  */
+-#ifndef PR_SHADOW_STACK_ENABLE
+-#define PR_SHADOW_STACK_ENABLE (1UL << 0)
+-#define PR_SHADOW_STACK_WRITE (1UL << 1)
+-#define PR_SHADOW_STACK_PUSH (1UL << 2)
+-#endif
+-
+ /* Enum used to define the extra fields of the siginfo type used by an
+    architecture.  */
+ enum linux_siginfo_extra_field_values
+diff --git a/gdb/nat/aarch64-gcs-linux.h b/gdb/nat/aarch64-gcs-linux.h
+new file mode 100644
+index 000000000000..ddf8342a4284
+--- /dev/null
++++ b/gdb/nat/aarch64-gcs-linux.h
+@@ -0,0 +1,45 @@
++/* Common native Linux definitions for AArch64 Guarded Control Stack.
++
++   Copyright (C) 2025-2026 Free Software Foundation, Inc.
++
++   This file is part of GDB.
++
++   This program is free software; you can redistribute it and/or modify
++   it under the terms of the GNU General Public License as published by
++   the Free Software Foundation; either version 3 of the License, or
++   (at your option) any later version.
++
++   This program is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++   GNU General Public License for more details.
++
++   You should have received a copy of the GNU General Public License
++   along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
++
++#ifndef GDB_NAT_AARCH64_GCS_LINUX_H
++#define GDB_NAT_AARCH64_GCS_LINUX_H
++
++#include <stdint.h>
++#include <asm/ptrace.h>
++
++/* Feature check for Guarded Control Stack.  */
++#ifndef HWCAP_GCS
++#define HWCAP_GCS (1ULL << 32)
++#endif
++
++/* Make sure we only define these if the kernel header doesn't.  */
++#ifndef GCS_MAGIC
++
++/* GCS state (NT_ARM_GCS).  */
++
++struct user_gcs
++{
++  uint64_t features_enabled;
++  uint64_t features_locked;
++  uint64_t gcspr_el0;
++};
++
++#endif /* GCS_MAGIC */
++
++#endif /* GDB_NAT_AARCH64_GCS_LINUX_H */
+diff --git a/gdbserver/linux-aarch64-low.cc b/gdbserver/linux-aarch64-low.cc
+index c44f75167141..a2588a6e2a9c 100644
+--- a/gdbserver/linux-aarch64-low.cc
++++ b/gdbserver/linux-aarch64-low.cc
+@@ -40,12 +40,12 @@
+ 
+ #include "gdb_proc_service.h"
+ #include "arch/aarch64.h"
+-#include "arch/aarch64-gcs-linux.h"
+ #include "arch/aarch64-mte-linux.h"
+ #include "arch/aarch64-pauth-linux.h"
+ #include "linux-aarch32-tdesc.h"
+ #include "linux-aarch64-tdesc.h"
+ #include "nat/aarch64-fpmr-linux.h"
++#include "nat/aarch64-gcs-linux.h"
+ #include "nat/aarch64-mte-linux-ptrace.h"
+ #include "nat/aarch64-scalable-linux-ptrace.h"
+ #include "tdesc.h"
+

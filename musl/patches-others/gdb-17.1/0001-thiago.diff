@@ -1,0 +1,204 @@
+diff --git a/gdb/Makefile.in b/gdb/Makefile.in
+index 2aa95be968ac..a412f3b3c592 100644
+--- a/gdb/Makefile.in
++++ b/gdb/Makefile.in
+@@ -1306,6 +1306,7 @@ HFILES_NO_SRCDIR = \
+ 	arch/aarch64-insn.h \
+ 	arch/aarch64-mte.h \
+ 	arch/aarch64-mte-linux.h \
++	arch/aarch64-pauth-linux.h \
+ 	arch/aarch64-scalable-linux.h \
+ 	arch/amd64.h \
+ 	arch/amd64-linux-tdesc.h \
+@@ -1549,6 +1550,7 @@ HFILES_NO_SRCDIR = \
+ 	nat/aarch64-linux.h \
+ 	nat/aarch64-linux-hw-point.h \
+ 	nat/aarch64-mte-linux-ptrace.h \
++	nat/aarch64-pauth-linux.h \
+ 	nat/aarch64-scalable-linux-ptrace.h \
+ 	nat/aarch64-scalable-linux-sigcontext.h \
+ 	nat/amd64-linux.h \
+diff --git a/gdb/aarch64-linux-nat.c b/gdb/aarch64-linux-nat.c
+index 028de981588b..f64cc0a97d88 100644
+--- a/gdb/aarch64-linux-nat.c
++++ b/gdb/aarch64-linux-nat.c
+@@ -34,6 +34,7 @@
+ #include "arch/arm.h"
+ #include "nat/aarch64-linux.h"
+ #include "nat/aarch64-linux-hw-point.h"
++#include "nat/aarch64-pauth-linux.h"
+ #include "nat/aarch64-scalable-linux-ptrace.h"
+ 
+ #include "elf/external.h"
+@@ -1012,7 +1013,7 @@ aarch64_linux_nat_target::read_description ()
+      or the streaming vector length, depending on whether streaming mode is
+      active or not.  */
+   features.vq = aarch64_sve_get_vq (tid);
+-  features.pauth = hwcap & AARCH64_HWCAP_PACA;
++  features.pauth = hwcap & HWCAP_PACA;
+   features.gcs = features.gcs_linux = hwcap & HWCAP_GCS;
+   features.mte = hwcap2 & HWCAP2_MTE;
+   features.tls = aarch64_tls_register_count (tid);
+diff --git a/gdb/aarch64-linux-tdep.c b/gdb/aarch64-linux-tdep.c
+index b85c25ecae1d..d3d4c9e1de38 100644
+--- a/gdb/aarch64-linux-tdep.c
++++ b/gdb/aarch64-linux-tdep.c
+@@ -54,6 +54,7 @@
+ #include "arch/aarch64-gcs-linux.h"
+ #include "arch/aarch64-mte.h"
+ #include "arch/aarch64-mte-linux.h"
++#include "arch/aarch64-pauth-linux.h"
+ #include "arch/aarch64-scalable-linux.h"
+ 
+ #include "arch-utils.h"
+diff --git a/gdb/aarch64-linux-tdep.h b/gdb/aarch64-linux-tdep.h
+index e926687ff6eb..b99fe91f36bd 100644
+--- a/gdb/aarch64-linux-tdep.h
++++ b/gdb/aarch64-linux-tdep.h
+@@ -33,16 +33,10 @@
+    alignment.  */
+ #define AARCH64_LINUX_SIZEOF_FPREGSET (33 * V_REGISTER_SIZE)
+ 
+-/* The pauth regset consists of 2 X sized registers.  */
+-#define AARCH64_LINUX_SIZEOF_PAUTH (2 * X_REGISTER_SIZE)
+-
+ /* The MTE regset consists of a 64-bit register.  */
+ #define AARCH64_LINUX_SIZEOF_MTE_REGSET (8)
+ 
+ extern const struct regset aarch64_linux_gregset;
+ extern const struct regset aarch64_linux_fpregset;
+ 
+-/* Matches HWCAP_PACA in kernel header arch/arm64/include/uapi/asm/hwcap.h.  */
+-#define AARCH64_HWCAP_PACA (1 << 30)
+-
+ #endif /* GDB_AARCH64_LINUX_TDEP_H */
+diff --git a/gdb/arch/aarch64-pauth-linux.h b/gdb/arch/aarch64-pauth-linux.h
+new file mode 100644
+index 000000000000..4174dc3a9ded
+--- /dev/null
++++ b/gdb/arch/aarch64-pauth-linux.h
+@@ -0,0 +1,29 @@
++/* Common Linux target-dependent definitions for AArch64 PAuth.
++
++   Copyright (C) 2019-2026 Free Software Foundation, Inc.
++
++   This file is part of GDB.
++
++   This program is free software; you can redistribute it and/or modify
++   it under the terms of the GNU General Public License as published by
++   the Free Software Foundation; either version 3 of the License, or
++   (at your option) any later version.
++
++   This program is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++   GNU General Public License for more details.
++
++   You should have received a copy of the GNU General Public License
++   along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
++
++#ifndef GDB_ARCH_AARCH64_PAUTH_LINUX_H
++#define GDB_ARCH_AARCH64_PAUTH_LINUX_H
++
++/* Feature check for Pointer Authentication Code Extension.  */
++#define AARCH64_HWCAP_PACA (1 << 30)
++
++/* The pauth regset consists of 2 64-bit registers.  */
++#define AARCH64_LINUX_SIZEOF_PAUTH 16
++
++#endif /* GDB_ARCH_AARCH64_PAUTH_LINUX_H */
+diff --git a/gdb/arch/aarch64.h b/gdb/arch/aarch64.h
+index 0e9715a4268a..7856d95a93b1 100644
+--- a/gdb/arch/aarch64.h
++++ b/gdb/arch/aarch64.h
+@@ -178,9 +178,6 @@ enum aarch64_regnum
+ #define AARCH64_PAUTH_DMASK_HIGH_REGNUM(pauth_reg_base) (pauth_reg_base + 2)
+ #define AARCH64_PAUTH_CMASK_HIGH_REGNUM(pauth_reg_base) (pauth_reg_base + 3)
+ 
+-/* This size is only meant for Linux, not bare metal.  QEMU exposes 4 masks.  */
+-#define AARCH64_PAUTH_REGS_SIZE (16)
+-
+ #define AARCH64_X_REGS_NUM 31
+ #define AARCH64_V_REGS_NUM 32
+ #define AARCH64_SVE_Z_REGS_NUM AARCH64_V_REGS_NUM
+diff --git a/gdb/nat/aarch64-pauth-linux.h b/gdb/nat/aarch64-pauth-linux.h
+new file mode 100644
+index 000000000000..5ce85fb296c4
+--- /dev/null
++++ b/gdb/nat/aarch64-pauth-linux.h
+@@ -0,0 +1,26 @@
++/* Common Linux native definitions for AArch64 PAuth.
++
++   Copyright (C) 2019-2026 Free Software Foundation, Inc.
++
++   This file is part of GDB.
++
++   This program is free software; you can redistribute it and/or modify
++   it under the terms of the GNU General Public License as published by
++   the Free Software Foundation; either version 3 of the License, or
++   (at your option) any later version.
++
++   This program is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++   GNU General Public License for more details.
++
++   You should have received a copy of the GNU General Public License
++   along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
++
++#ifndef GDB_NAT_AARCH64_PAUTH_LINUX_H
++#define GDB_NAT_AARCH64_PAUTH_LINUX_H
++
++/* Feature check for Pointer Authentication Code Extension.  */
++#define HWCAP_PACA (1 << 30)
++
++#endif /* GDB_NAT_AARCH64_PAUTH_LINUX_H */
+diff --git a/gdbserver/linux-aarch64-low.cc b/gdbserver/linux-aarch64-low.cc
+index b19e605f55d6..07ddfb324466 100644
+--- a/gdbserver/linux-aarch64-low.cc
++++ b/gdbserver/linux-aarch64-low.cc
+@@ -22,6 +22,7 @@
+ #include "linux-low.h"
+ #include "nat/aarch64-linux.h"
+ #include "nat/aarch64-linux-hw-point.h"
++#include "nat/aarch64-pauth-linux.h"
+ #include "arch/aarch64-insn.h"
+ #include "linux-aarch32-low.h"
+ #include "elf/common.h"
+@@ -41,6 +42,7 @@
+ #include "arch/aarch64.h"
+ #include "arch/aarch64-gcs-linux.h"
+ #include "arch/aarch64-mte-linux.h"
++#include "arch/aarch64-pauth-linux.h"
+ #include "arch/aarch64-scalable-linux.h"
+ #include "linux-aarch32-tdesc.h"
+ #include "linux-aarch64-tdesc.h"
+@@ -952,7 +954,7 @@ aarch64_adjust_register_sets (const struct aarch64_features &features)
+ 	  break;
+ 	case NT_ARM_PAC_MASK:
+ 	  if (features.pauth)
+-	    regset->size = AARCH64_PAUTH_REGS_SIZE;
++	    regset->size = AARCH64_LINUX_SIZEOF_PAUTH;
+ 	  break;
+ 	case NT_ARM_TAGGED_ADDR_CTRL:
+ 	  if (features.mte)
+@@ -984,9 +986,6 @@ aarch64_adjust_register_sets (const struct aarch64_features &features)
+     }
+ }
+ 
+-/* Matches HWCAP_PACA in kernel header arch/arm64/include/uapi/asm/hwcap.h.  */
+-#define AARCH64_HWCAP_PACA (1 << 30)
+-
+ /* Implementation of linux target ops method "low_arch_setup".  */
+ 
+ void
+@@ -1005,7 +1004,7 @@ aarch64_target::low_arch_setup ()
+ 
+       features.vq = aarch64_sve_get_vq (tid);
+       /* A-profile PAC is 64-bit only.  */
+-      features.pauth = linux_get_hwcap (pid, 8) & AARCH64_HWCAP_PACA;
++      features.pauth = linux_get_hwcap (pid, 8) & HWCAP_PACA;
+       /* A-profile MTE is 64-bit only.  */
+       features.mte = linux_get_hwcap2 (pid, 8) & HWCAP2_MTE;
+       features.tls = aarch64_tls_register_count (tid);
+

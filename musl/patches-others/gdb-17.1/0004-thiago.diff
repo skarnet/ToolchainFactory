@@ -1,0 +1,68 @@
+diff --git a/gdb/aarch64-linux-nat.c b/gdb/aarch64-linux-nat.c
+index d12e2ddcfb28..4b86ae9ebe16 100644
+--- a/gdb/aarch64-linux-nat.c
++++ b/gdb/aarch64-linux-nat.c
+@@ -55,7 +55,6 @@
+ #include "arch-utils.h"
+ 
+ #include "arch/aarch64-gcs-linux.h"
+-#include "arch/aarch64-scalable-linux.h"
+ 
+ #include <string.h>
+ 
+diff --git a/gdb/arch/aarch64-scalable-linux.h b/gdb/arch/aarch64-scalable-linux.h
+index 813d06562055..e20d094e79d7 100644
+--- a/gdb/arch/aarch64-scalable-linux.h
++++ b/gdb/arch/aarch64-scalable-linux.h
+@@ -23,17 +23,6 @@
+ 
+ #include "gdbsupport/common-regcache.h"
+ 
+-/* Feature check for Scalable Matrix Extension.  */
+-#ifndef HWCAP2_SME
+-#define HWCAP2_SME (1 << 23)
+-#endif
+-
+-/* Feature check for Scalable Matrix Extension 2.  */
+-#ifndef HWCAP2_SME2
+-#define HWCAP2_SME2   (1UL << 37)
+-#define HWCAP2_SME2P1 (1UL << 38)
+-#endif
+-
+ /* Streaming mode enabled/disabled bit.  */
+ #define SVCR_SM_BIT (1 << 0)
+ /* ZA enabled/disabled bit.  */
+diff --git a/gdb/nat/aarch64-scalable-linux-ptrace.h b/gdb/nat/aarch64-scalable-linux-ptrace.h
+index 453f19dfe8d9..f3424baf7092 100644
+--- a/gdb/nat/aarch64-scalable-linux-ptrace.h
++++ b/gdb/nat/aarch64-scalable-linux-ptrace.h
+@@ -34,6 +34,17 @@
+ #include <stdarg.h>
+ #include "aarch64-scalable-linux-sigcontext.h"
+ 
++/* Feature check for Scalable Matrix Extension.  */
++#ifndef HWCAP2_SME
++#define HWCAP2_SME (1 << 23)
++#endif
++
++/* Feature check for Scalable Matrix Extension 2.  */
++#ifndef HWCAP2_SME2
++#define HWCAP2_SME2   (1UL << 37)
++#define HWCAP2_SME2P1 (1UL << 38)
++#endif
++
+ /* Indicates whether a SVE ptrace header is followed by SVE registers or a
+    fpsimd structure.  */
+ #define HAS_SVE_STATE(header) ((header).flags & SVE_PT_REGS_SVE)
+diff --git a/gdbserver/linux-aarch64-low.cc b/gdbserver/linux-aarch64-low.cc
+index a00ee1556c80..c44f75167141 100644
+--- a/gdbserver/linux-aarch64-low.cc
++++ b/gdbserver/linux-aarch64-low.cc
+@@ -43,7 +43,6 @@
+ #include "arch/aarch64-gcs-linux.h"
+ #include "arch/aarch64-mte-linux.h"
+ #include "arch/aarch64-pauth-linux.h"
+-#include "arch/aarch64-scalable-linux.h"
+ #include "linux-aarch32-tdesc.h"
+ #include "linux-aarch64-tdesc.h"
+ #include "nat/aarch64-fpmr-linux.h"

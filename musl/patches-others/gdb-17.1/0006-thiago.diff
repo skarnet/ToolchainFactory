@@ -1,0 +1,91 @@
+diff --git a/gdbsupport/config.in b/gdbsupport/config.in
+index 0beacf22c057..2957ee0f0301 100644
+--- a/gdbsupport/config.in
++++ b/gdbsupport/config.in
+@@ -271,6 +271,9 @@
+ /* Define to 1 if `st_blocks' is a member of `struct stat'. */
+ #undef HAVE_STRUCT_STAT_ST_BLOCKS
+ 
++/* Define to 1 if your system has struct user_gcs. */
++#undef HAVE_STRUCT_USER_GCS
++
+ /* Define to 1 if you have the <sys/param.h> header file. */
+ #undef HAVE_SYS_PARAM_H
+ 
+diff --git a/gdbsupport/configure b/gdbsupport/configure
+index 05ad00f48c4f..584a80ef8255 100755
+--- a/gdbsupport/configure
++++ b/gdbsupport/configure
+@@ -14307,6 +14307,42 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
+ 
+ 
+ 
++# Check for `struct user_gcs`
++{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for struct user_gcs" >&5
++$as_echo_n "checking for struct user_gcs... " >&6; }
++if ${gdb_cv_struct_user_gcs+:} false; then :
++  $as_echo_n "(cached) " >&6
++else
++  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
++/* end confdefs.h.  */
++#include <sys/ptrace.h>
++	 #include <asm/ptrace.h>
++int
++main ()
++{
++struct user_gcs u;
++
++  ;
++  return 0;
++}
++_ACEOF
++if ac_fn_c_try_compile "$LINENO"; then :
++  gdb_cv_struct_user_gcs=yes
++else
++  gdb_cv_struct_user_gcs=no
++
++fi
++rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
++
++fi
++{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $gdb_cv_struct_user_gcs" >&5
++$as_echo "$gdb_cv_struct_user_gcs" >&6; }
++if test "$gdb_cv_struct_user_gcs" = yes; then
++
++$as_echo "#define HAVE_STRUCT_USER_GCS 1" >>confdefs.h
++
++fi
++
+ # Set the 'development' global.
+ . $srcdir/../bfd/development.sh
+ 
+diff --git a/gdbsupport/configure.ac b/gdbsupport/configure.ac
+index 5491b8f3f10a..6c06832f0913 100644
+--- a/gdbsupport/configure.ac
++++ b/gdbsupport/configure.ac
+@@ -68,6 +68,25 @@ GDB_AC_PTRACE
+ AM_GDB_COMPILER_TYPE
+ AM_GDB_WARNINGS
+ 
++# Check for `struct user_gcs`
++AC_CACHE_CHECK(
++  [for struct user_gcs],
++  [gdb_cv_struct_user_gcs],
++  [AC_COMPILE_IFELSE(
++     [AC_LANG_PROGRAM(
++	[#include <sys/ptrace.h>
++	 #include <asm/ptrace.h>],
++	[struct user_gcs u;]
++      )],
++     [gdb_cv_struct_user_gcs=yes],
++     [gdb_cv_struct_user_gcs=no]
++  )]
++)
++if test "$gdb_cv_struct_user_gcs" = yes; then
++  AC_DEFINE(HAVE_STRUCT_USER_GCS, 1,
++	    [Define to 1 if your system has struct user_gcs.])
++fi
++
+ # Set the 'development' global.
+ . $srcdir/../bfd/development.sh
+ 

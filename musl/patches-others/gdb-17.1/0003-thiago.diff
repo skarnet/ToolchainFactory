@@ -1,0 +1,163 @@
+diff --git a/gdb/aarch64-linux-nat.c b/gdb/aarch64-linux-nat.c
+index 81a46ee1f0d0..d12e2ddcfb28 100644
+--- a/gdb/aarch64-linux-nat.c
++++ b/gdb/aarch64-linux-nat.c
+@@ -35,6 +35,7 @@
+ #include "nat/aarch64-fpmr-linux.h"
+ #include "nat/aarch64-linux.h"
+ #include "nat/aarch64-linux-hw-point.h"
++#include "nat/aarch64-mte-linux-ptrace.h"
+ #include "nat/aarch64-pauth-linux.h"
+ #include "nat/aarch64-scalable-linux-ptrace.h"
+ 
+@@ -54,9 +55,6 @@
+ #include "arch-utils.h"
+ 
+ #include "arch/aarch64-gcs-linux.h"
+-#include "arch/aarch64-mte-linux.h"
+-
+-#include "nat/aarch64-mte-linux-ptrace.h"
+ #include "arch/aarch64-scalable-linux.h"
+ 
+ #include <string.h>
+diff --git a/gdb/aarch64-linux-tdep.c b/gdb/aarch64-linux-tdep.c
+index 504e4126f1bc..4ca05fba771d 100644
+--- a/gdb/aarch64-linux-tdep.c
++++ b/gdb/aarch64-linux-tdep.c
+@@ -1764,7 +1764,7 @@ aarch64_linux_core_read_description (struct gdbarch *gdbarch,
+   features.vq = aarch64_linux_core_read_vq_from_sections (gdbarch, abfd);
+   features.pauth = hwcap & AARCH64_HWCAP_PACA;
+   features.gcs = features.gcs_linux = hwcap & HWCAP_GCS;
+-  features.mte = hwcap2 & HWCAP2_MTE;
++  features.mte = hwcap2 & AARCH64_HWCAP2_MTE;
+   features.fpmr = hwcap2 & AARCH64_HWCAP2_FPMR;
+ 
+   /* Handle the TLS section.  */
+@@ -2698,7 +2698,7 @@ aarch64_linux_report_signal_info (struct gdbarch *gdbarch,
+ 
+   const char *meaning;
+ 
+-  if (si_code == SEGV_MTEAERR || si_code == SEGV_MTESERR)
++  if (si_code == AARCH64_SEGV_MTEAERR || si_code == AARCH64_SEGV_MTESERR)
+     meaning = _("Memory tag violation");
+   else if (si_code == SEGV_CPERR && si_errno == 0)
+     meaning = _("Guarded Control Stack error");
+@@ -2710,7 +2710,7 @@ aarch64_linux_report_signal_info (struct gdbarch *gdbarch,
+   uiout->field_string ("sigcode-meaning", meaning);
+ 
+   /* For synchronous faults, show additional information.  */
+-  if (si_code == SEGV_MTESERR)
++  if (si_code == AARCH64_SEGV_MTESERR)
+     {
+       uiout->text (_(" while accessing address "));
+       uiout->field_core_addr ("fault-addr", gdbarch, fault_addr);
+diff --git a/gdb/aarch64-linux-tdep.h b/gdb/aarch64-linux-tdep.h
+index b99fe91f36bd..385b03cc1be7 100644
+--- a/gdb/aarch64-linux-tdep.h
++++ b/gdb/aarch64-linux-tdep.h
+@@ -33,9 +33,6 @@
+    alignment.  */
+ #define AARCH64_LINUX_SIZEOF_FPREGSET (33 * V_REGISTER_SIZE)
+ 
+-/* The MTE regset consists of a 64-bit register.  */
+-#define AARCH64_LINUX_SIZEOF_MTE_REGSET (8)
+-
+ extern const struct regset aarch64_linux_gregset;
+ extern const struct regset aarch64_linux_fpregset;
+ 
+diff --git a/gdb/arch/aarch64-mte-linux.h b/gdb/arch/aarch64-mte-linux.h
+index 5c7e78c71eaf..bc31ae52b916 100644
+--- a/gdb/arch/aarch64-mte-linux.h
++++ b/gdb/arch/aarch64-mte-linux.h
+@@ -20,29 +20,14 @@
+ #ifndef GDB_ARCH_AARCH64_MTE_LINUX_H
+ #define GDB_ARCH_AARCH64_MTE_LINUX_H
+ 
+-
+-/* Feature check for Memory Tagging Extension.  */
+-#ifndef HWCAP2_MTE
+-#define HWCAP2_MTE  (1 << 18)
+-#endif
++#define AARCH64_HWCAP2_MTE  (1 << 18)
+ 
+ /* The MTE regset consists of a single 64-bit register.  */
+-#define AARCH64_LINUX_SIZEOF_MTE 8
++#define AARCH64_LINUX_SIZEOF_MTE_REGSET 8
+ 
+ /* Memory tagging definitions.  */
+-#ifndef SEGV_MTEAERR
+-# define SEGV_MTEAERR 8
+-# define SEGV_MTESERR 9
+-#endif
+-
+-/* Memory tag types for AArch64.  */
+-enum class aarch64_memtag_type
+-{
+-  /* MTE logical tag contained in pointers.  */
+-  mte_logical = 0,
+-  /* MTE allocation tag stored in memory tag granules.  */
+-  mte_allocation
+-};
++#define AARCH64_SEGV_MTEAERR 8
++#define AARCH64_SEGV_MTESERR 9
+ 
+ /* Given a TAGS vector containing 1 MTE tag per byte, pack the data as
+    2 tags per byte and resize the vector.  */
+diff --git a/gdb/nat/aarch64-mte-linux-ptrace.c b/gdb/nat/aarch64-mte-linux-ptrace.c
+index 903e11841201..c88b1d4fcd23 100644
+--- a/gdb/nat/aarch64-mte-linux-ptrace.c
++++ b/gdb/nat/aarch64-mte-linux-ptrace.c
+@@ -23,7 +23,6 @@
+ 
+ #include "arch/aarch64.h"
+ #include "arch/aarch64-mte.h"
+-#include "arch/aarch64-mte-linux.h"
+ #include "nat/aarch64-linux.h"
+ #include "nat/aarch64-mte-linux-ptrace.h"
+ 
+diff --git a/gdb/nat/aarch64-mte-linux-ptrace.h b/gdb/nat/aarch64-mte-linux-ptrace.h
+index d31fa9f3c071..653de33108c8 100644
+--- a/gdb/nat/aarch64-mte-linux-ptrace.h
++++ b/gdb/nat/aarch64-mte-linux-ptrace.h
+@@ -20,6 +20,11 @@
+ #ifndef GDB_NAT_AARCH64_MTE_LINUX_PTRACE_H
+ #define GDB_NAT_AARCH64_MTE_LINUX_PTRACE_H
+ 
++/* Feature check for Memory Tagging Extension.  */
++#ifndef HWCAP2_MTE
++#define HWCAP2_MTE  (1 << 18)
++#endif
++
+ /* MTE allocation tag access */
+ 
+ #ifndef PTRACE_PEEKMTETAGS
+@@ -33,6 +38,15 @@
+ /* Maximum number of tags to pass at once to the kernel.  */
+ #define AARCH64_MTE_TAGS_MAX_SIZE 4096
+ 
++/* Memory tag types for AArch64.  */
++enum class aarch64_memtag_type
++{
++  /* MTE logical tag contained in pointers.  */
++  mte_logical = 0,
++  /* MTE allocation tag stored in memory tag granules.  */
++  mte_allocation
++};
++
+ /* Read the allocation tags from memory range [ADDRESS, ADDRESS + LEN)
+    into TAGS.
+ 
+diff --git a/gdbserver/linux-aarch64-low.cc b/gdbserver/linux-aarch64-low.cc
+index a6439943e855..a00ee1556c80 100644
+--- a/gdbserver/linux-aarch64-low.cc
++++ b/gdbserver/linux-aarch64-low.cc
+@@ -959,7 +959,7 @@ aarch64_adjust_register_sets (const struct aarch64_features &features)
+ 	  break;
+ 	case NT_ARM_TAGGED_ADDR_CTRL:
+ 	  if (features.mte)
+-	    regset->size = AARCH64_LINUX_SIZEOF_MTE;
++	    regset->size = AARCH64_LINUX_SIZEOF_MTE_REGSET;
+ 	  break;
+ 	case NT_ARM_TLS:
+ 	  if (features.tls > 0)
+

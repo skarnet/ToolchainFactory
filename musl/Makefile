@@ -2,7 +2,8 @@ include ../config
 
 O ?= $(CURDIR)/out
 
-MCM_VER ?= e149c31c48b4f4a4c9349ddf7bc0027b90245afc
+# MCM_VER ?= e149c31c48b4f4a4c9349ddf7bc0027b90245afc
+MCM_VER ?= 4be756d35cb0c603ba9255a9fb187c39e082413b
 MIN_KERNEL_VER ?= 6.10.8
 
 # make sure pc is first, because we need $(pc_TRIPLET) defined early
@@ -53,8 +54,8 @@ $(O)/mk/$(1)-gdb.configured: $(O)/mk/gdb.unpacked $(O)/mk/pc-native.done $(O)/mk
 	cd $(O)/build/$(1)/gdb/src && \
 	env \
 	  PATH=$$(PATH) \
-	  CC="$(O)/native/$$(pc_TRIPLET)_pc-$(GCC_VER)/bin/gcc -g0 -O2 -static --static" \
-	  CXX="$(O)/native/$$(pc_TRIPLET)_pc-$(GCC_VER)/bin/g++ -g0 -O2 -static --static" \
+	  CC="$(O)/native/$$(pc_TRIPLET)_pc-$(GCC_VER)/bin/gcc -g0 -O2 -static --static -std=gnu17" \
+	  CXX="$(O)/native/$$(pc_TRIPLET)_pc-$(GCC_VER)/bin/g++ -g0 -O2 -static --static -std=gnu++17" \
 	  CC_FOR_TARGET=$$($(1)_TRIPLET)-gcc \
 	  CXX_FOR_TARGET=$$($(1)_TRIPLET)-g++ \
 	  MAKEINFO=true \
@@ -183,7 +184,7 @@ $(O)/mk/gdb.unpacked: $(O)/mk/gdb.downloaded hashes/gdb-$(GDB_VER).tar.xz.sha1 $
 
 $(O)/mk/gmp.configured: $(O)/mk/pc-native.done
 	@mkdir -p $(O)/build/gmp/build
-	cd $(O)/build/gmp/build && env PATH=$(PATH) CC="gcc -static --static" CXX="g++ -static --static" ../../../musl-cross-make/gmp-$(GMP_VER)/configure --prefix=$(O)/build/gmp --disable-assembly --enable-cxx --disable-shared --with-gnu-ld
+	cd $(O)/build/gmp/build && env PATH=$(PATH) CC="gcc -static --static -std=gnu17" CXX="g++ -static --static -std=gnu++17" ../../../musl-cross-make/gmp-$(GMP_VER)/configure --prefix=$(O)/build/gmp --disable-assembly --enable-cxx --disable-shared --with-gnu-ld
 	exec touch $@
 
 $(O)/mk/gmp.built: $(O)/mk/gmp.configured
@@ -222,7 +223,7 @@ $(O)/mk/mpc.done: $(O)/mk/mpc.built
 
 $(O)/mk/isl.configured: $(O)/mk/gmp.done $(O)/mk/pc-native.done
 	@mkdir -p $(O)/build/isl/build
-	cd $(O)/build/isl/build && env PATH=$(PATH) CC="gcc -static --static" ../../../musl-cross-make/isl-$(ISL_VER)/configure --prefix=$(O)/build/isl --disable-shared --with-gnu-ld --with-gmp-prefix=$(O)/build/gmp
+	cd $(O)/build/isl/build && env PATH=$(PATH) CC="gcc -static --static -std=gnu17" ../../../musl-cross-make/isl-$(ISL_VER)/configure --prefix=$(O)/build/isl --disable-shared --with-gnu-ld --with-gmp-prefix=$(O)/build/gmp
 	exec touch $@
 
 $(O)/mk/isl.built: $(O)/mk/isl.configured

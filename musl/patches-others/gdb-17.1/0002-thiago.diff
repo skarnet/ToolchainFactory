@@ -1,0 +1,146 @@
+diff --git a/gdb/Makefile.in b/gdb/Makefile.in
+index a412f3b3c592..3d9bc86a97fd 100644
+--- a/gdb/Makefile.in
++++ b/gdb/Makefile.in
+@@ -1301,6 +1301,7 @@ HFILES_NO_SRCDIR = \
+ 	amdgpu-tdep.h \
+ 	annotate.h \
+ 	arch/aarch32.h \
++	arch/aarch64-fpmr-linux.h \
+ 	arch/aarch64-gcs-linux.h \
+ 	arch/aarch64.h \
+ 	arch/aarch64-insn.h \
+@@ -1546,6 +1547,7 @@ HFILES_NO_SRCDIR = \
+ 	mn10300-tdep.h \
+ 	moxie-tdep.h \
+ 	namespace.h \
++	nat/aarch64-fpmr-linux.h \
+ 	nat/aarch64-hw-point.h \
+ 	nat/aarch64-linux.h \
+ 	nat/aarch64-linux-hw-point.h \
+diff --git a/gdb/aarch64-linux-nat.c b/gdb/aarch64-linux-nat.c
+index f64cc0a97d88..81a46ee1f0d0 100644
+--- a/gdb/aarch64-linux-nat.c
++++ b/gdb/aarch64-linux-nat.c
+@@ -32,6 +32,7 @@
+ #include "aarch32-linux-nat.h"
+ #include "aarch32-tdep.h"
+ #include "arch/arm.h"
++#include "nat/aarch64-fpmr-linux.h"
+ #include "nat/aarch64-linux.h"
+ #include "nat/aarch64-linux-hw-point.h"
+ #include "nat/aarch64-pauth-linux.h"
+diff --git a/gdb/aarch64-linux-tdep.c b/gdb/aarch64-linux-tdep.c
+index d3d4c9e1de38..504e4126f1bc 100644
+--- a/gdb/aarch64-linux-tdep.c
++++ b/gdb/aarch64-linux-tdep.c
+@@ -51,6 +51,7 @@
+ #include "record-full.h"
+ #include "linux-record.h"
+ 
++#include "arch/aarch64-fpmr-linux.h"
+ #include "arch/aarch64-gcs-linux.h"
+ #include "arch/aarch64-mte.h"
+ #include "arch/aarch64-mte-linux.h"
+@@ -1764,7 +1765,7 @@ aarch64_linux_core_read_description (struct gdbarch *gdbarch,
+   features.pauth = hwcap & AARCH64_HWCAP_PACA;
+   features.gcs = features.gcs_linux = hwcap & HWCAP_GCS;
+   features.mte = hwcap2 & HWCAP2_MTE;
+-  features.fpmr = hwcap2 & HWCAP2_FPMR;
++  features.fpmr = hwcap2 & AARCH64_HWCAP2_FPMR;
+ 
+   /* Handle the TLS section.  */
+   asection *tls = bfd_get_section_by_name (abfd, ".reg-aarch-tls");
+diff --git a/gdb/arch/aarch64-fpmr-linux.h b/gdb/arch/aarch64-fpmr-linux.h
+new file mode 100644
+index 000000000000..5495cf8c0018
+--- /dev/null
++++ b/gdb/arch/aarch64-fpmr-linux.h
+@@ -0,0 +1,26 @@
++/* Common Linux target-dependent definitions for AArch64 FPMR.
++
++   Copyright (C) 2025-2026 Free Software Foundation, Inc.
++
++   This file is part of GDB.
++
++   This program is free software; you can redistribute it and/or modify
++   it under the terms of the GNU General Public License as published by
++   the Free Software Foundation; either version 3 of the License, or
++   (at your option) any later version.
++
++   This program is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++   GNU General Public License for more details.
++
++   You should have received a copy of the GNU General Public License
++   along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
++
++#ifndef GDB_ARCH_AARCH64_FPMR_LINUX_H
++#define GDB_ARCH_AARCH64_FPMR_LINUX_H
++
++/* Feature check for Floating Point Mode Register.  */
++#define AARCH64_HWCAP2_FPMR (1ULL << 48)
++
++#endif /* GDB_ARCH_AARCH64_FPMR_LINUX_H */
+diff --git a/gdb/arch/aarch64.h b/gdb/arch/aarch64.h
+index 7856d95a93b1..c9a89ac40986 100644
+--- a/gdb/arch/aarch64.h
++++ b/gdb/arch/aarch64.h
+@@ -243,9 +243,4 @@ enum aarch64_regnum
+ /* Size of the SME2 ZT0 register in bytes.  */
+ #define AARCH64_SME2_ZT0_SIZE 64
+ 
+-/* Feature check for Floating Point Mode Register.  */
+-#ifndef HWCAP2_FPMR
+-#define HWCAP2_FPMR (1ULL << 48)
+-#endif /* HWCAP2_FPMR */
+-
+ #endif /* GDB_ARCH_AARCH64_H */
+diff --git a/gdb/nat/aarch64-fpmr-linux.h b/gdb/nat/aarch64-fpmr-linux.h
+new file mode 100644
+index 000000000000..bb0243a89396
+--- /dev/null
++++ b/gdb/nat/aarch64-fpmr-linux.h
+@@ -0,0 +1,28 @@
++/* Common Linux native definitions for AArch64 FPMR.
++
++   Copyright (C) 2025-2026 Free Software Foundation, Inc.
++
++   This file is part of GDB.
++
++   This program is free software; you can redistribute it and/or modify
++   it under the terms of the GNU General Public License as published by
++   the Free Software Foundation; either version 3 of the License, or
++   (at your option) any later version.
++
++   This program is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++   GNU General Public License for more details.
++
++   You should have received a copy of the GNU General Public License
++   along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
++
++#ifndef GDB_NAT_AARCH64_FPMR_LINUX_H
++#define GDB_NAT_AARCH64_FPMR_LINUX_H
++
++/* Feature check for Floating Point Mode Register.  */
++#ifndef HWCAP2_FPMR
++#define HWCAP2_FPMR (1ULL << 48)
++#endif /* HWCAP2_FPMR */
++
++#endif /* GDB_NAT_AARCH64_FPMR_LINUX_H */
+diff --git a/gdbserver/linux-aarch64-low.cc b/gdbserver/linux-aarch64-low.cc
+index 07ddfb324466..a6439943e855 100644
+--- a/gdbserver/linux-aarch64-low.cc
++++ b/gdbserver/linux-aarch64-low.cc
+@@ -46,6 +46,7 @@
+ #include "arch/aarch64-scalable-linux.h"
+ #include "linux-aarch32-tdesc.h"
+ #include "linux-aarch64-tdesc.h"
++#include "nat/aarch64-fpmr-linux.h"
+ #include "nat/aarch64-mte-linux-ptrace.h"
+ #include "nat/aarch64-scalable-linux-ptrace.h"
+ #include "tdesc.h"
+
