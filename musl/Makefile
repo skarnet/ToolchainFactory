@@ -2,9 +2,9 @@ include ../config
 
 O ?= $(CURDIR)/out
 
-# MCM_VER ?= e149c31c48b4f4a4c9349ddf7bc0027b90245afc
-MCM_VER ?= 4be756d35cb0c603ba9255a9fb187c39e082413b
-MIN_KERNEL_VER ?= 6.10.8
+# MCM_VER ?= 4be756d35cb0c603ba9255a9fb187c39e082413b
+MCM_VER ?= e5147dde912478dd32ad42a25003e82d4f5733aa
+MIN_KERNEL_VER ?= 6.19.5
 
 # make sure pc is first, because we need $(pc_TRIPLET) defined early
 XTARGETS := pc $(filter-out pc,$(subst targets/,,$(wildcard targets/*)))
