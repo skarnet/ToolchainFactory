@@ -1,7 +1,15 @@
 diff -rNU3 musl-cross-make.old/Makefile musl-cross-make/Makefile
---- musl-cross-make.old/Makefile	2026-03-08 09:20:08.205897255 +0000
-+++ musl-cross-make/Makefile	2026-03-08 09:24:19.765894923 +0000
-@@ -138,6 +138,7 @@
+--- musl-cross-make.old/Makefile	2026-06-05 00:45:06.010023964 +0000
++++ musl-cross-make/Makefile	2026-06-05 00:46:05.460024586 +0000
+@@ -65,6 +65,7 @@
+ $(patsubst hashes/%.sha1,$(SOURCES)/%,$(wildcard hashes/binutils*)): SITE = $(BINUTILS_SITE)
+ $(patsubst hashes/%.sha1,$(SOURCES)/%,$(wildcard hashes/gcc*)): SITE = $(GCC_SITE)/$(basename $(basename $(notdir $@)))
+ $(patsubst hashes/%.sha1,$(SOURCES)/%,$(wildcard hashes/musl*)): SITE = $(MUSL_SITE)
++$(patsubst hashes/%.sha1,$(SOURCES)/%,$(wildcard hashes/linux-7*)): SITE = $(LINUX_SITE)/v7.x
+ $(patsubst hashes/%.sha1,$(SOURCES)/%,$(wildcard hashes/linux-6*)): SITE = $(LINUX_SITE)/v6.x
+ $(patsubst hashes/%.sha1,$(SOURCES)/%,$(wildcard hashes/linux-5*)): SITE = $(LINUX_SITE)/v5.x
+ $(patsubst hashes/%.sha1,$(SOURCES)/%,$(wildcard hashes/linux-4*)): SITE = $(LINUX_SITE)/v4.x
+@@ -138,6 +139,7 @@
  	mkdir $@.tmp
  	( cd $@.tmp && $(COWPATCH) -I ../$< )
  	test ! -d patches/$@ || cat patches/$@/* | ( cd $@.tmp && $(COWPATCH) -p1 )
@@ -10,8 +18,8 @@ diff -rNU3 musl-cross-make.old/Makefile musl-cross-make/Makefile
  	mv $@.tmp $@
  
 diff -rNU3 musl-cross-make.old/litecross/Makefile musl-cross-make/litecross/Makefile
---- musl-cross-make.old/litecross/Makefile	2026-03-08 09:26:39.005893631 +0000
-+++ musl-cross-make/litecross/Makefile	2026-03-08 09:20:08.285897255 +0000
+--- musl-cross-make.old/litecross/Makefile	2026-06-05 00:45:06.010023964 +0000
++++ musl-cross-make/litecross/Makefile	2026-06-05 00:22:34.440009820 +0000
 @@ -269,7 +269,7 @@
  	ln -sf "$(LINUX_SRCDIR)" $@
  obj_kernel_headers/.lc_built: | src_kernel_headers
